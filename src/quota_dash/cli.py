@@ -22,6 +22,24 @@ DEFAULT_CONFIG_DIR = Path.home() / ".config" / "quota-dash"
 DEFAULT_CONFIG_PATH = DEFAULT_CONFIG_DIR / "config.toml"
 
 
+def _format_tokens(t: dict) -> str:
+    """Format token counts, preferring in/out split when available."""
+    inp, out, total = t["input_tokens"], t["output_tokens"], t["total_tokens"]
+    if inp > 0 or out > 0:
+        return f"{_human_k(inp)}/{_human_k(out)}"
+    if total > 0:
+        return _human_k(total)
+    return "0"
+
+
+def _human_k(n: int) -> str:
+    if n >= 1_000_000:
+        return f"{n / 1_000_000:.1f}M"
+    if n >= 1_000:
+        return f"{n / 1_000:.1f}K"
+    return str(n)
+
+
 def _json_serializer(obj: object) -> str:
     if isinstance(obj, datetime):
         return obj.isoformat()
@@ -50,7 +68,7 @@ async def _run_once(
         table.add_column("Provider")
         table.add_column("Balance")
         table.add_column("Limit")
-        table.add_column("Tokens (in/out)")
+        table.add_column("Tokens")
         table.add_column("Context")
         table.add_column("Source")
 
@@ -60,7 +78,7 @@ async def _run_once(
             c = data["context"]
             bal = f"${q['balance_usd']:.2f}" if q["balance_usd"] is not None else "N/A"
             lim = f"${q['limit_usd']:.2f}" if q["limit_usd"] is not None else "N/A"
-            tok = f"{t['input_tokens']}/{t['output_tokens']}"
+            tok = _format_tokens(t)
             ctx = f"{c['percent_used']:.0f}% ({c['model']})"
             table.add_row(name, bal, lim, tok, ctx, q["source"])
 
@@ -160,6 +178,11 @@ def main(
             continue
         if name in provider_map_cls:
             providers[name] = provider_map_cls[name](pconfig)
+
+    if not providers and not do_init:
+        click.echo("No providers configured. Run 'quota-dash --init' to create a config file.")
+        if not do_check and not once:
+            return
 
     if do_check:
         asyncio.run(_run_check(providers))
