@@ -18,7 +18,7 @@ enabled = true
 # The key needs org-level admin permissions for usage data
 api_key_env = "OPENAI_API_KEY"
 
-# Path to Codex CLI logs (for token tracking)
+# Path to Codex CLI data directory (contains state_5.sqlite for token tracking)
 # log_path = "~/.codex"
 
 # Manual quota entry (used when API is unavailable)

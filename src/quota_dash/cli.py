@@ -81,11 +81,11 @@ async def _run_check(providers: dict[str, Provider]) -> None:
             status = "[green]OK[/green]" if ok else "[red]FAIL[/red]"
             console.print(f"  API connection: {status} — {msg}")
 
-            log_db = provider._config.log_path / "logs_1.sqlite"
-            if log_db.exists():
-                console.print(f"  Codex logs:     [green]found[/green] — {log_db}")
+            state_db = provider._config.log_path / "state_5.sqlite"
+            if state_db.exists():
+                console.print(f"  Codex state DB: [green]found[/green] — {state_db}")
             else:
-                console.print(f"  Codex logs:     [yellow]not found[/yellow] — {log_db}")
+                console.print(f"  Codex state DB: [yellow]not found[/yellow] — {state_db}")
 
         elif name == "anthropic":
             costs_path = provider._config.log_path / "metrics" / "costs.jsonl"
@@ -168,5 +168,5 @@ def main(
     else:
         from quota_dash.app import QuotaDashApp
 
-        app = QuotaDashApp(config=config, theme_override=theme)
+        app = QuotaDashApp(config=config, theme_override=theme, provider_filter=provider)
         app.run()

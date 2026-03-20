@@ -29,7 +29,10 @@ async def fetch_openai_usage(api_key: str) -> dict | None:
                 return None
 
             data = resp.json()
-            results = data.get("data", [{}])[0].get("results", [])
+            buckets = data.get("data", [])
+            if not buckets:
+                return {"usage_usd": 0.0}
+            results = buckets[0].get("results", [])
             total = sum(
                 r.get("amount", {}).get("value", 0.0)
                 for r in results

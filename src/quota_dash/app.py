@@ -39,9 +39,11 @@ class QuotaDashApp(App):
         self,
         config: AppConfig | None = None,
         theme_override: str | None = None,
+        provider_filter: str | None = None,
     ) -> None:
         self._config = config or AppConfig()
         self._theme_override = theme_override
+        self._provider_filter = provider_filter
         self._store = DataStore()
         self._providers: dict[str, Provider] = {}
 
@@ -81,7 +83,11 @@ class QuotaDashApp(App):
     def _init_providers(self) -> None:
         provider_map = {"openai": OpenAIProvider, "anthropic": AnthropicProvider}
         for name, pconfig in self._config.providers.items():
-            if pconfig.enabled and name in provider_map:
+            if not pconfig.enabled:
+                continue
+            if self._provider_filter and name != self._provider_filter:
+                continue
+            if name in provider_map:
                 self._providers[name] = provider_map[name](pconfig)
 
     async def _refresh_all(self) -> None:

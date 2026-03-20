@@ -70,8 +70,7 @@ class OpenAIProvider(Provider):
 
     async def get_token_usage(self) -> TokenUsage:
         try:
-            log_db = self._config.log_path / "logs_1.sqlite"
-            return parse_codex_logs(log_db)
+            return parse_codex_logs(self._config.log_path)
         except Exception as exc:
             logger.warning("openai get_token_usage failed: %s", exc)
             return TokenUsage(
