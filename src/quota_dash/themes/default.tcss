@@ -1,0 +1,43 @@
+/* quota-dash/src/quota_dash/themes/default.tcss */
+Screen {
+    layout: horizontal;
+    background: $surface;
+}
+
+ProviderList {
+    width: 24;
+    height: 100%;
+    border-right: solid $primary;
+    padding: 1;
+    background: $panel;
+}
+
+#main-panel {
+    width: 1fr;
+    height: 100%;
+    padding: 1;
+}
+
+QuotaPanel {
+    height: auto;
+    min-height: 5;
+    padding: 1;
+    border-bottom: solid $primary-muted;
+}
+
+TokenPanel {
+    height: auto;
+    min-height: 5;
+    padding: 1;
+    border-bottom: solid $primary-muted;
+}
+
+ContextGauge {
+    height: auto;
+    min-height: 4;
+    padding: 1;
+}
+
+Footer {
+    dock: bottom;
+}

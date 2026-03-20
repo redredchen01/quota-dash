@@ -1,0 +1,50 @@
+/* quota-dash/src/quota_dash/themes/ghostty.tcss */
+Screen {
+    layout: horizontal;
+    background: #1a1b26;
+}
+
+ProviderList {
+    width: 26;
+    height: 100%;
+    border-right: tall #7aa2f7;
+    padding: 1;
+    background: #16161e;
+    color: #a9b1d6;
+}
+
+#main-panel {
+    width: 1fr;
+    height: 100%;
+    padding: 1;
+    background: #1a1b26;
+}
+
+QuotaPanel {
+    height: auto;
+    min-height: 5;
+    padding: 1;
+    border-bottom: tall #3b4261;
+    color: #c0caf5;
+}
+
+TokenPanel {
+    height: auto;
+    min-height: 5;
+    padding: 1;
+    border-bottom: tall #3b4261;
+    color: #c0caf5;
+}
+
+ContextGauge {
+    height: auto;
+    min-height: 4;
+    padding: 1;
+    color: #c0caf5;
+}
+
+Footer {
+    dock: bottom;
+    background: #16161e;
+    color: #565f89;
+}
