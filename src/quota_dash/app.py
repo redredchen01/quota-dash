@@ -1,7 +1,10 @@
 from __future__ import annotations
 
+import logging
 import os
 from pathlib import Path
+
+logger = logging.getLogger(__name__)
 
 from textual.app import App, ComposeResult
 from textual.binding import Binding
@@ -89,9 +92,18 @@ class QuotaDashApp(App):
 
         if selected and selected in self._providers:
             provider = self._providers[selected]
-            quota = await provider.get_quota()
-            tokens = await provider.get_token_usage()
-            context = await provider.get_context_window()
+            try:
+                quota = await provider.get_quota()
+                tokens = await provider.get_token_usage()
+                context = await provider.get_context_window()
+            except Exception as exc:
+                logger.error("Refresh failed for %s: %s", selected, exc)
+                self.notify(
+                    f"[b]Error[/b] refreshing {selected}: {exc}",
+                    severity="error",
+                    timeout=5,
+                )
+                return
 
             self._store.update_quota(selected, quota)
             self._store.update_tokens(selected, tokens)

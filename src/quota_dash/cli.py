@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import asyncio
 import json
+import os
+import shutil
 from dataclasses import asdict
 from datetime import datetime
 from pathlib import Path
@@ -14,6 +16,10 @@ from quota_dash.config import load_config
 from quota_dash.providers.anthropic import AnthropicProvider
 from quota_dash.providers.base import Provider
 from quota_dash.providers.openai import OpenAIProvider
+
+EXAMPLE_CONFIG = Path(__file__).parent.parent.parent / "config.example.toml"
+DEFAULT_CONFIG_DIR = Path.home() / ".config" / "quota-dash"
+DEFAULT_CONFIG_PATH = DEFAULT_CONFIG_DIR / "config.toml"
 
 
 def _json_serializer(obj: object) -> str:
@@ -61,21 +67,88 @@ async def _run_once(
         console.print(table)
 
 
+async def _run_check(providers: dict[str, Provider]) -> None:
+    """Test connectivity for each provider and print results."""
+    console = Console()
+    from quota_dash.data.api_client import check_openai_connection
+
+    for name, provider in providers.items():
+        console.print(f"\n[bold]{name}[/bold]")
+
+        if name == "openai":
+            api_key = os.environ.get(provider._config.api_key_env, "")
+            ok, msg = await check_openai_connection(api_key)
+            status = "[green]OK[/green]" if ok else "[red]FAIL[/red]"
+            console.print(f"  API connection: {status} — {msg}")
+
+            log_db = provider._config.log_path / "logs_1.sqlite"
+            if log_db.exists():
+                console.print(f"  Codex logs:     [green]found[/green] — {log_db}")
+            else:
+                console.print(f"  Codex logs:     [yellow]not found[/yellow] — {log_db}")
+
+        elif name == "anthropic":
+            costs_path = provider._config.log_path / "metrics" / "costs.jsonl"
+            if costs_path.exists():
+                console.print(f"  costs.jsonl:    [green]found[/green] — {costs_path}")
+            else:
+                console.print(f"  costs.jsonl:    [yellow]not found[/yellow] — {costs_path}")
+
+            if provider._config.balance_usd is not None:
+                console.print(f"  Manual quota:   [green]configured[/green] — ${provider._config.balance_usd:.2f}")
+            else:
+                console.print("  Manual quota:   [yellow]not set[/yellow] (Anthropic has no usage API)")
+
+    console.print()
+
+
+def _run_init() -> None:
+    """Copy example config to default location."""
+    console = Console()
+
+    if DEFAULT_CONFIG_PATH.exists():
+        console.print(f"[yellow]Config already exists:[/yellow] {DEFAULT_CONFIG_PATH}")
+        console.print("Delete it first if you want to reinitialize.")
+        return
+
+    # Find the example config (works both installed and editable)
+    example = EXAMPLE_CONFIG
+    if not example.exists():
+        # Fallback: look relative to package
+        example = Path(__file__).parent / "config.example.toml"
+    if not example.exists():
+        console.print("[red]Could not find config.example.toml[/red]")
+        return
+
+    DEFAULT_CONFIG_DIR.mkdir(parents=True, exist_ok=True)
+    shutil.copy2(example, DEFAULT_CONFIG_PATH)
+    console.print(f"[green]Config created:[/green] {DEFAULT_CONFIG_PATH}")
+    console.print("Edit it to configure your providers.")
+
+
 @click.command("quota-dash")
 @click.option("--once", is_flag=True, help="One-shot query, print and exit")
 @click.option("--json", "as_json", is_flag=True, help="Output as JSON (with --once)")
 @click.option("--provider", default=None, help="Show only this provider")
 @click.option("--theme", default=None, help="Force theme: default | ghostty")
 @click.option("--config", "config_path", default=None, type=click.Path(), help="Config file path")
+@click.option("--init", "do_init", is_flag=True, help="Create default config file")
+@click.option("--check", "do_check", is_flag=True, help="Test provider connectivity")
 def main(
     once: bool,
     as_json: bool,
     provider: str | None,
     theme: str | None,
     config_path: str | None,
+    do_init: bool,
+    do_check: bool,
 ) -> None:
     """Multi-provider LLM quota monitoring dashboard."""
-    path = Path(config_path) if config_path else Path.home() / ".config" / "quota-dash" / "config.toml"
+    if do_init:
+        _run_init()
+        return
+
+    path = Path(config_path) if config_path else DEFAULT_CONFIG_PATH
     config = load_config(path if path.exists() else None)
 
     provider_map_cls = {"openai": OpenAIProvider, "anthropic": AnthropicProvider}
@@ -88,7 +161,9 @@ def main(
         if name in provider_map_cls:
             providers[name] = provider_map_cls[name](pconfig)
 
-    if once:
+    if do_check:
+        asyncio.run(_run_check(providers))
+    elif once:
         asyncio.run(_run_once(providers, as_json))
     else:
         from quota_dash.app import QuotaDashApp
